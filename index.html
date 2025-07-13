@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>VR 360 Image Viewer</title>
+    <meta name="description" content="A-Frame 360 Image Viewer">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { background: #000; }
+      #instructions {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #fff;
+        background: rgba(0,0,0,0.5);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="instructions">
+      <strong>VR 360 Image Viewer</strong><br>
+      Click and drag to look around.<br>
+      <em>Edit <code>src</code> in the <code>&lt;a-sky&gt;</code> tag to change the image.</em>
+    </div>
+    <a-scene>
+      <a-sky src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/sechelt.jpg" rotation="0 -130 0"></a-sky>
+    </a-scene>
+  </body>
+</html>
