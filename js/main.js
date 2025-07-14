@@ -5,7 +5,7 @@ const panoramaSky = document.getElementById('panorama-sky');
 const galleryToggle = document.getElementById('gallery-toggle');
 
 // VR Gallery Elements
-let vrGallery, thumbnailContainer, galleryTitle, backBtn, toggleGalleryBtn, toggleGalleryText;
+let vrGallery, gallerySphere, sphereGrid, thumbnailContainer, galleryTitle, backBtn, toggleGalleryBtn, toggleGalleryText;
 let scene;
 
 let currentView = 'subdirectories'; // 'subdirectories' or 'images'
@@ -19,6 +19,8 @@ let currentSubdirectories = [];
 function initVRGallery() {
     scene = document.querySelector('a-scene');
     vrGallery = document.getElementById('vr-gallery');
+    gallerySphere = document.getElementById('gallery-sphere');
+    sphereGrid = document.getElementById('sphere-grid');
     thumbnailContainer = document.getElementById('thumbnail-container');
     galleryTitle = document.getElementById('gallery-title');
     backBtn = document.getElementById('back-btn');
@@ -78,12 +80,18 @@ function syncGalleryState() {
         if (vrGallery) {
             vrGallery.setAttribute('visible', galleryVisible);
         }
+        if (sphereGrid) {
+            sphereGrid.setAttribute('visible', galleryVisible);
+        }
         galleryOverlay.style.display = 'none';
         galleryToggle.style.display = 'none';
     } else {
         // In 2D mode, use traditional overlay
         if (vrGallery) {
             vrGallery.setAttribute('visible', false);
+        }
+        if (sphereGrid) {
+            sphereGrid.setAttribute('visible', false);
         }
         galleryOverlay.style.display = galleryVisible ? 'flex' : 'none';
         galleryToggle.style.display = 'block';
@@ -96,6 +104,9 @@ function toggleGallery() {
     
     if (vrMode) {
         vrGallery.setAttribute('visible', galleryVisible);
+        if (sphereGrid) {
+            sphereGrid.setAttribute('visible', galleryVisible);
+        }
         toggleGalleryText.setAttribute('value', galleryVisible ? 'Hide Gallery' : 'Show Gallery');
     } else {
         if (galleryVisible) {
@@ -130,18 +141,36 @@ function is360Image(imageName) {
            name.includes('spherical');
 }
 
-// Create VR thumbnail
-function createVRThumbnail(imageName, imagePath, subdirectoryName, index) {
+// Calculate spherical position for thumbnails
+function calculateSpherePosition(index, total, radius = 4, centerY = 0, centerZ = -2.5) {
+    // Distribute items around the sphere using spherical coordinates
+    const phi = (index / total) * 2 * Math.PI; // Azimuthal angle (around Y axis)
+    const theta = Math.PI / 3; // Polar angle (fixed at 60 degrees from top)
+    
+    const x = radius * Math.sin(theta) * Math.cos(phi);
+    const y = centerY + radius * Math.cos(theta) * 0.5; // Slightly lower on sphere
+    const z = centerZ + radius * Math.sin(theta) * Math.sin(phi);
+    
+    return { x, y, z, phi, theta };
+}
+
+// Create VR thumbnail with spherical positioning
+function createVRThumbnail(imageName, imagePath, subdirectoryName, index, total) {
     const thumbnail = document.createElement('a-plane');
-    const xPos = (index - 1) * 1.5; // Space thumbnails 1.5 units apart
+    const spherePos = calculateSpherePosition(index, total);
     
     thumbnail.setAttribute('mixin', 'thumbnail-mixin');
-    thumbnail.setAttribute('position', `${xPos} 0 0`);
+    thumbnail.setAttribute('position', `${spherePos.x} ${spherePos.y} ${spherePos.z}`);
     thumbnail.setAttribute('material', `src: images/${subdirectoryName}/thumb_${imageName}; transparent: true`);
     thumbnail.setAttribute('data-raycastable', '');
     thumbnail.setAttribute('class', 'vr-thumbnail clickable');
     thumbnail.setAttribute('data-image-path', imagePath);
     thumbnail.setAttribute('data-image-name', imageName);
+    
+    // Rotate thumbnail to face the center (camera) and align with sphere surface
+    const rotationY = Math.atan2(spherePos.x, spherePos.z) * 180 / Math.PI + 180;
+    const rotationX = -Math.atan2(spherePos.y, Math.sqrt(spherePos.x * spherePos.x + spherePos.z * spherePos.z)) * 180 / Math.PI;
+    thumbnail.setAttribute('rotation', `${rotationX} ${rotationY} 0`);
     
     // Add 360° indicator for VR
     if (is360Image(imageName)) {
@@ -192,17 +221,22 @@ function createVRThumbnail(imageName, imagePath, subdirectoryName, index) {
     return thumbnail;
 }
 
-// Create VR subdirectory item
-function createVRSubdirectoryItem(subdirName, index) {
+// Create VR subdirectory item with spherical positioning
+function createVRSubdirectoryItem(subdirName, index, total) {
     const item = document.createElement('a-plane');
-    const xPos = (index - 1) * 2; // Space items 2 units apart
+    const spherePos = calculateSpherePosition(index, total);
     
-    item.setAttribute('position', `${xPos} 0 0`);
+    item.setAttribute('position', `${spherePos.x} ${spherePos.y} ${spherePos.z}`);
     item.setAttribute('width', '1.5');
     item.setAttribute('height', '0.8');
     item.setAttribute('color', '#333');
     item.setAttribute('data-raycastable', '');
     item.setAttribute('class', 'vr-subdir clickable');
+    
+    // Rotate item to face the center (camera) and align with sphere surface
+    const rotationY = Math.atan2(spherePos.x, spherePos.z) * 180 / Math.PI + 180;
+    const rotationX = -Math.atan2(spherePos.y, Math.sqrt(spherePos.x * spherePos.x + spherePos.z * spherePos.z)) * 180 / Math.PI;
+    item.setAttribute('rotation', `${rotationX} ${rotationY} 0`);
     
     // Add text
     const text = document.createElement('a-text');
@@ -245,17 +279,19 @@ function updateVRGallery() {
         galleryTitle.setAttribute('value', '360° Gallery - Select Directory');
         backBtn.setAttribute('visible', false);
         
+        const total = currentSubdirectories.length;
         currentSubdirectories.forEach((subdirName, index) => {
-            const item = createVRSubdirectoryItem(subdirName, index);
+            const item = createVRSubdirectoryItem(subdirName, index, total);
             thumbnailContainer.appendChild(item);
         });
     } else if (currentView === 'images') {
         galleryTitle.setAttribute('value', `360° Gallery - ${currentSubdirectory}`);
         backBtn.setAttribute('visible', true);
         
+        const total = currentImages.length;
         currentImages.forEach((imageName, index) => {
             const imagePath = `images/${currentSubdirectory}/${imageName}`;
-            const thumbnail = createVRThumbnail(imageName, imagePath, currentSubdirectory, index);
+            const thumbnail = createVRThumbnail(imageName, imagePath, currentSubdirectory, index, total);
             thumbnailContainer.appendChild(thumbnail);
         });
     }
@@ -413,6 +449,29 @@ async function loadSubdirectories() {
     }
 }
 
+// Camera movement variables
+let cameraRotation = { x: 0, y: 0 };
+const CAMERA_SPEED = 2; // degrees per keypress
+
+// Camera movement functions
+function rotateCameraHorizontal(direction) {
+    const camera = document.getElementById('main-camera');
+    if (camera) {
+        cameraRotation.y += direction * CAMERA_SPEED;
+        camera.setAttribute('rotation', `${cameraRotation.x} ${cameraRotation.y} 0`);
+    }
+}
+
+function rotateCameraVertical(direction) {
+    const camera = document.getElementById('main-camera');
+    if (camera) {
+        cameraRotation.x += direction * CAMERA_SPEED;
+        // Clamp vertical rotation to prevent over-rotation
+        cameraRotation.x = Math.max(-90, Math.min(90, cameraRotation.x));
+        camera.setAttribute('rotation', `${cameraRotation.x} ${cameraRotation.y} 0`);
+    }
+}
+
 // Keyboard shortcuts
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (event) => {
@@ -487,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('- G: Toggle gallery visibility');
     console.log('- Escape: Back to directories (when viewing images)');
     console.log('- Left/Right arrows: Navigate between images');
+    console.log('- H/J/K/L: Camera movement (Vim-style) - H=left, L=right, J=down, K=up');
     console.log('VR Features:');
     console.log('- 3D gallery panels visible in VR mode');
     console.log('- Point and click with VR controllers');

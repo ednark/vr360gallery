@@ -28,21 +28,92 @@
         <!-- 360 Sky -->
         <a-sky id="panorama-sky" src=""></a-sky>
         
-        <!-- VR Gallery Container -->
-        <a-entity id="vr-gallery" position="0 0 -3" visible="true">
-            <!-- Gallery Background Panel -->
-            <a-plane id="gallery-bg"
-                     position="0 -1.5 0"
-                     width="8"
-                     height="2"
-                     color="#000"
-                     opacity="0.7"
-                     transparent="true">
-            </a-plane>
+        <!-- VR Gallery Container - Spherical Design -->
+        <a-entity id="vr-gallery" position="0 0 0" visible="true">
+            <!-- Spherical Gallery Container -->
+            <a-sphere id="gallery-sphere"
+                      position="0 0 -2.5"
+                      radius="4"
+                      color="#000"
+                      opacity="0.25"
+                      transparent="true"
+                      visible="false">
+            </a-sphere>
             
-            <!-- Gallery Title -->
+            <!-- Spherical Grid Lines for visualization -->
+            <a-entity id="sphere-grid" position="0 0 0" visible="false">
+                <!-- Latitude lines (horizontal rings) -->
+                <a-ring id="lat-ring-1"
+                        position="0 2 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="90 0 0"></a-ring>
+                <a-ring id="lat-ring-2"
+                        position="0 1 0"
+                        radius-inner="3.7"
+                        radius-outer="3.78"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="90 0 0"></a-ring>
+                <a-ring id="lat-ring-3"
+                        position="0 -1 0"
+                        radius-inner="3.7"
+                        radius-outer="3.78"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="90 0 0"></a-ring>
+                <a-ring id="lat-ring-4"
+                        position="0 -2 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="90 0 0"></a-ring>
+                
+                <!-- Longitude lines (vertical rings) -->
+                <a-ring id="lon-ring-1"
+                        position="0 0 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="0 0 0"></a-ring>
+                <a-ring id="lon-ring-2"
+                        position="0 0 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="0 45 0"></a-ring>
+                <a-ring id="lon-ring-3"
+                        position="0 0 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="0 90 0"></a-ring>
+                <a-ring id="lon-ring-4"
+                        position="0 0 0"
+                        radius-inner="3.96"
+                        radius-outer="4.04"
+                        color="#ffffff"
+                        opacity="0.3"
+                        transparent="true"
+                        rotation="0 135 0"></a-ring>
+            </a-entity>
+            
+            <!-- Gallery Title positioned on sphere -->
             <a-text id="gallery-title"
-                    position="0 -0.3 0.01"
+                    position="0 1.8 -2.5"
                     value="360° Gallery"
                     align="center"
                     color="white"
@@ -50,21 +121,22 @@
                     width="8">
             </a-text>
             
-            <!-- Thumbnail Container -->
-            <a-entity id="thumbnail-container" position="0 -1.5 0.01">
-                <!-- Thumbnails will be dynamically added here -->
+            <!-- Thumbnail Container for spherical positioning -->
+            <a-entity id="thumbnail-container" position="0 0 0">
+                <!-- Thumbnails will be dynamically positioned on sphere surface -->
             </a-entity>
             
-            <!-- Navigation Buttons -->
-            <a-entity id="nav-buttons" position="0 -2.3 0.01">
+            <!-- Navigation Buttons positioned on sphere -->
+            <a-entity id="nav-buttons" position="0 0 0">
                 <!-- Back Button -->
                 <a-plane id="back-btn"
-                         position="-3 0 0"
+                         position="-1.5 -1.5 -1.8"
                          width="0.8"
                          height="0.4"
                          color="#ff6b6b"
                          data-raycastable
-                         class="clickable">
+                         class="clickable"
+                         rotation="0 15 0">
                     <a-text value="← Back"
                             align="center"
                             position="0 0 0.01"
@@ -75,12 +147,13 @@
                 
                 <!-- Toggle Gallery Button -->
                 <a-plane id="toggle-gallery-btn"
-                         position="3 0 0"
+                         position="1.5 -1.5 -1.8"
                          width="1.2"
                          height="0.4"
                          color="#007bff"
                          data-raycastable
-                         class="clickable">
+                         class="clickable"
+                         rotation="0 -15 0">
                     <a-text id="toggle-gallery-text"
                             value="Hide Gallery"
                             align="center"
