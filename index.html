@@ -1,33 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>VR 360 Image Viewer</title>
-    <meta name="description" content="A-Frame 360 Image Viewer">
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <style>
-      html, body { height: 100%; margin: 0; }
-      body { background: #000; }
-      #instructions {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: #fff;
-        background: rgba(0,0,0,0.5);
-        padding: 10px;
-        border-radius: 5px;
-        z-index: 10;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="instructions">
-      <strong>VR 360 Image Viewer</strong><br>
-      Click and drag to look around.<br>
-      <em>Edit <code>src</code> in the <code>&lt;a-sky&gt;</code> tag to change the image.</em>
-    </div>
-    <a-scene>
-      <a-sky src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/sechelt.jpg" rotation="0 -130 0"></a-sky>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 Photo Viewer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<body>
+    <a-scene id="viewer" embedded style="height: 100vh; width: 100vw;"
+             vr-mode-ui="enabled: true"
+             cursor="rayOrigin: mouse; fuse: false"
+             raycaster="objects: [data-raycastable]">
+        
+        <!-- Assets for preloading -->
+        <a-assets>
+            <a-mixin id="thumbnail-mixin"
+                     geometry="primitive: plane; width: 1.2; height: 0.8"
+                     material="transparent: true; alphaTest: 0.1"
+                     data-raycastable></a-mixin>
+            <a-mixin id="ui-panel-mixin"
+                     geometry="primitive: plane; width: 0.8; height: 0.6"
+                     material="color: #000; opacity: 0.8; transparent: true"
+                     data-raycastable></a-mixin>
+        </a-assets>
+        
+        <!-- 360 Sky -->
+        <a-sky id="panorama-sky" src=""></a-sky>
+        
+        <!-- VR Gallery Container -->
+        <a-entity id="vr-gallery" position="0 0 -3" visible="true">
+            <!-- Gallery Background Panel -->
+            <a-plane id="gallery-bg"
+                     position="0 -1.5 0"
+                     width="8"
+                     height="2"
+                     color="#000"
+                     opacity="0.7"
+                     transparent="true">
+            </a-plane>
+            
+            <!-- Gallery Title -->
+            <a-text id="gallery-title"
+                    position="0 -0.3 0.01"
+                    value="360° Gallery"
+                    align="center"
+                    color="white"
+                    font="kelsonsans"
+                    width="8">
+            </a-text>
+            
+            <!-- Thumbnail Container -->
+            <a-entity id="thumbnail-container" position="0 -1.5 0.01">
+                <!-- Thumbnails will be dynamically added here -->
+            </a-entity>
+            
+            <!-- Navigation Buttons -->
+            <a-entity id="nav-buttons" position="0 -2.3 0.01">
+                <!-- Back Button -->
+                <a-plane id="back-btn"
+                         position="-3 0 0"
+                         width="0.8"
+                         height="0.4"
+                         color="#ff6b6b"
+                         data-raycastable
+                         class="clickable">
+                    <a-text value="← Back"
+                            align="center"
+                            position="0 0 0.01"
+                            color="white"
+                            width="6">
+                    </a-text>
+                </a-plane>
+                
+                <!-- Toggle Gallery Button -->
+                <a-plane id="toggle-gallery-btn"
+                         position="3 0 0"
+                         width="1.2"
+                         height="0.4"
+                         color="#007bff"
+                         data-raycastable
+                         class="clickable">
+                    <a-text id="toggle-gallery-text"
+                            value="Hide Gallery"
+                            align="center"
+                            position="0 0 0.01"
+                            color="white"
+                            width="5">
+                    </a-text>
+                </a-plane>
+            </a-entity>
+        </a-entity>
+        
+        <!-- VR Controllers -->
+        <a-entity id="leftHand"
+                  hand-controls="hand: left; handModelStyle: lowPoly; color: #ffcccc"
+                  raycaster="objects: [data-raycastable]"
+                  line="color: red; opacity: 0.75">
+        </a-entity>
+        
+        <a-entity id="rightHand"
+                  hand-controls="hand: right; handModelStyle: lowPoly; color: #ccffcc"
+                  raycaster="objects: [data-raycastable]"
+                  line="color: blue; opacity: 0.75">
+        </a-entity>
+        
+        <!-- Camera with cursor for non-VR interaction -->
+        <a-camera id="main-camera">
+            <a-cursor id="cursor"
+                      color="white"
+                      raycaster="objects: [data-raycastable]"
+                      fuse="true"
+                      fuse-timeout="1500">
+            </a-cursor>
+        </a-camera>
     </a-scene>
-  </body>
+    
+    <!-- 2D Gallery Toggle (for non-VR mode) -->
+    <button id="gallery-toggle" class="gallery-toggle">Gallery</button>
+    <div id="gallery-overlay"></div>
+    <script src="js/main.js"></script>
+</body>
 </html>
