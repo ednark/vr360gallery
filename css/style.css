@@ -1,7 +1,8 @@
 body {
     margin: 0;
     overflow: hidden;
-    font-family: sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #000;
 }
 
 #viewer {
@@ -15,117 +16,276 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 150px;
-    background-color: rgba(0, 0, 0, 0.5);
+    height: 200px;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
-    overflow-x: auto;
-    padding: 10px;
+    overflow-y: auto;
+    padding: 20px;
     box-sizing: border-box;
     transition: transform 0.3s ease;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+#gallery-overlay::-webkit-scrollbar {
+    height: 8px;
+}
+
+#gallery-overlay::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#gallery-overlay::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+#gallery-overlay::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 #gallery-overlay.hidden {
     transform: translateY(100%);
 }
 
+/* Virtual scrolling container */
+.virtual-scroll-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-content: flex-start;
+}
+
+.visible-thumbnails {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-content: flex-start;
+}
+
+/* Thumbnail containers for consistent sizing */
+.thumbnail-container,
+.subdirectory-container,
+.back-button-container {
+    flex-shrink: 0;
+    position: relative;
+}
+
 .thumbnail {
-    width: 120px;
-    height: 80px;
-    margin: 0 5px;
+    width: 100%;
+    height: 100%;
     border: 2px solid transparent;
     cursor: pointer;
-    transition: border-color 0.3s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
     object-fit: cover;
-    border-radius: 4px;
-    position: relative;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .thumbnail:hover {
     border-color: #fff;
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.thumbnail.active {
+    border-color: #007bff;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
 .thumbnail.is-360 {
     border-color: #00ff88;
 }
 
+.thumbnail.is-360:hover {
+    border-color: #00ff88;
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.thumbnail.is-360.active {
+    border-color: #00ff88;
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.5);
+}
+
 .thumbnail.is-360::after {
     content: "360°";
     position: absolute;
-    top: 2px;
-    right: 2px;
-    background: rgba(0, 255, 136, 0.8);
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 255, 136, 0.9);
     color: white;
     font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 2px;
+    padding: 2px 6px;
+    border-radius: 3px;
     font-weight: bold;
+    z-index: 1;
 }
 
-.gallery-toggle {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: 2px solid #fff;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    z-index: 1000;
-}
-
-.gallery-toggle:hover {
-    background: rgba(255, 255, 255, 0.2);
+/* Subdirectory grid layout */
+.subdirectories-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    align-content: flex-start;
 }
 
 .subdirectory-item {
-    min-width: 120px;
-    height: 80px;
-    margin: 0 5px;
-    border: 2px solid transparent;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     cursor: pointer;
-    transition: border-color 0.3s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.2em;
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 4px;
+    font-size: 1.1em;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     text-align: center;
-    padding: 5px;
+    padding: 10px;
     box-sizing: border-box;
 }
 
 .subdirectory-item:hover {
     border-color: #fff;
     transform: scale(1.05);
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
+/* Back button styling */
 .back-button {
-    min-width: 80px;
-    height: 80px;
-    margin: 0 5px;
+    width: 100%;
+    height: 100%;
     border: 2px solid #ff6b6b;
     cursor: pointer;
-    transition: border-color 0.3s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ff6b6b;
-    font-size: 1.5em;
+    font-size: 1.8em;
+    font-weight: bold;
     background-color: rgba(255, 107, 107, 0.1);
-    border-radius: 4px;
+    border-radius: 8px;
 }
 
 .back-button:hover {
     border-color: #ff6b6b;
     transform: scale(1.05);
     background-color: rgba(255, 107, 107, 0.2);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+}
+
+/* Gallery toggle button */
+.gallery-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.gallery-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Loading state */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2em;
+    height: 100%;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #gallery-overlay {
+        height: 150px;
+        padding: 10px;
+    }
+    
+    .thumbnail-container,
+    .subdirectory-container,
+    .back-button-container {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    .thumbnail,
+    .subdirectory-item,
+    .back-button {
+        border-width: 1px;
+    }
+}
+
+@media (max-width: 480px) {
+    #gallery-overlay {
+        height: 120px;
+        padding: 8px;
+    }
+    
+    .thumbnail-container,
+    .subdirectory-container,
+    .back-button-container {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .subdirectory-item {
+        font-size: 0.9em;
+    }
+    
+    .back-button {
+        font-size: 1.4em;
+    }
+}
+
+/* Smooth animations */
+* {
+    box-sizing: border-box;
+}
+
+/* Focus styles for accessibility */
+.thumbnail:focus,
+.subdirectory-item:focus,
+.back-button:focus,
+.gallery-toggle:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .thumbnail,
+    .subdirectory-item {
+        border-width: 2px;
+    }
 }
