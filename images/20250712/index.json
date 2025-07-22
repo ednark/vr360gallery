@@ -1,7 +1,16 @@
 {
   "images": [
-    "image1.png",
-    "image2.png",
-    "image3.png"
+    {
+      "filename": "image2.png",
+      "is_360": false
+    },
+    {
+      "filename": "image1.png",
+      "is_360": false
+    },
+    {
+      "filename": "image3.png",
+      "is_360": false
+    }
   ]
 }

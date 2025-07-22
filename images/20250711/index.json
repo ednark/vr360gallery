@@ -1,5 +1,8 @@
 {
   "images": [
-    "equirectangular-360-panorama-interior-rendering-by-3ds-max-and-v-ray.jpg"
+    {
+      "filename": "equirectangular-360-panorama-interior-rendering-by-3ds-max-and-v-ray.jpg",
+      "is_360": true
+    }
   ]
 }

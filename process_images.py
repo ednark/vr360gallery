@@ -1,3 +1,4 @@
+
 import os
 import json
 from PIL import Image
@@ -6,9 +7,20 @@ from datetime import datetime
 IMAGES_DIR = 'images'
 THUMBNAIL_SIZE = (120, 80)
 
+def is_image_360(image_path):
+    """
+    Returns True if the image is likely a 360 equirectangular image (2:1 aspect ratio and wide enough).
+    """
+    try:
+        img = Image.open(image_path)
+        width, height = img.size
+        # Simple heuristic: equirectangular images are usually 2:1 aspect ratio
+        return abs((width / height) - 2.0) < 0.1 and width > 1000
+    except Exception as e:
+        print(f"  Error reading image size for {image_path}: {e}")
+        return False
 
-
-    process_raw_images()
+def process_images():
     if not os.path.exists(IMAGES_DIR):
         print(f"Images directory '{IMAGES_DIR}' not found. Please create it and place your gallery subdirectories inside.")
         return
@@ -21,6 +33,8 @@ THUMBNAIL_SIZE = (120, 80)
         print(f"Processing gallery: {gallery_name}")
         images_in_gallery = []
         for filename in os.listdir(gallery_path):
+            if filename.startswith('thumb_'):
+                continue
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
                 image_path = os.path.join(gallery_path, filename)
                 thumbnail_path = os.path.join(gallery_path, f"thumb_{filename}")
@@ -33,7 +47,13 @@ THUMBNAIL_SIZE = (120, 80)
                     print(f"  Created thumbnail: thumb_{filename}")
                 except Exception as e:
                     print(f"  Error creating thumbnail for {filename}: {e}")
-                images_in_gallery.append(filename)
+
+                # Detect if image is 360 (equirectangular)
+                is_360 = is_image_360(image_path)
+                images_in_gallery.append({
+                    "filename": filename,
+                    "is_360": is_360
+                })
 
         # Create index.json for the gallery
         gallery_index_json_path = os.path.join(gallery_path, 'index.json')
