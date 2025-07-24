@@ -56,36 +56,6 @@ function setupEventListeners() {
         }, 2000);
     });
     
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        switch(e.key) {
-            case 'g':
-            case 'G':
-                toggleGallery();
-                break;
-            case 'v':
-            case 'V':
-                // Toggle VR gallery
-                if (vrGalleryInitialized) {
-                    toggleVRGallery();
-                }
-                break;
-            case 'Escape':
-                if (vrGalleryVisible) {
-                    hideVRGallery();
-                } else if (currentView === 'images') {
-                    loadgalleries();
-                } else if (galleryVisible) {
-                    toggleGallery();
-                }
-                break;
-            case 'Tab':
-                e.preventDefault();
-                toggleGallery();
-                break;
-        }
-    });
-    
     // Gallery overlay scroll for virtual scrolling
     galleryOverlay.addEventListener('scroll', handleGalleryScroll);
     
@@ -188,6 +158,10 @@ function createThumbnail(imageName, imagePath, subdirectoryName) {
     // Click handler
     img.addEventListener('click', () => {
         initAFrameViewer(imagePath);
+
+        // Update current image index
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        currentImageIndex = Array.from(thumbnails).indexOf(img);
 
         // Remove active class from all thumbnails
         document.querySelectorAll('.thumbnail').forEach(thumb => {
@@ -339,6 +313,7 @@ async function loadImagesFromSubdirectory(subdirectoryName) {
 
         // Load the first image by default
         if (data.images.length > 0) {
+            currentImageIndex = 0;
             let firstImageObj = data.images[0];
             let firstFilename = firstImageObj;
             if (typeof firstImageObj === 'object' && firstImageObj !== null && 'filename' in firstImageObj) {
@@ -414,6 +389,8 @@ function toggleGallery() {
 // VR Gallery state
 let vrGalleryVisible = false;
 let vrGalleryInitialized = false;
+let isVRMode = false;
+let currentImageIndex = 0;
 
 // Initialize VR Gallery
 function initVRGallery() {
@@ -436,6 +413,54 @@ function initVRGallery() {
         
         vrGalleryInitialized = true;
         console.log('VR Gallery initialized');
+    }
+    
+    // Set up VR mode detection
+    setupVRModeDetection();
+}
+
+// Setup VR mode detection
+function setupVRModeDetection() {
+    const scene = document.getElementById('viewer');
+    if (scene) {
+        scene.addEventListener('enter-vr', () => {
+            isVRMode = true;
+            updateUIForMode();
+            console.log('Entered VR mode');
+        });
+        
+        scene.addEventListener('exit-vr', () => {
+            isVRMode = false;
+            updateUIForMode();
+            console.log('Exited VR mode');
+        });
+    }
+}
+
+// Update UI based on current mode (VR or 2D)
+function updateUIForMode() {
+    const galleryControls = document.getElementById('gallery-controls');
+    const keyboardHint = document.getElementById('keyboard-hint');
+    const galleryOverlay = document.getElementById('gallery-overlay');
+    const vrGalleryToggle = document.getElementById('vr-gallery-toggle');
+    
+    if (isVRMode) {
+        // Hide 2D UI elements
+        if (galleryControls) galleryControls.style.display = 'none';
+        if (keyboardHint) keyboardHint.style.display = 'none';
+        if (galleryOverlay) galleryOverlay.style.display = 'none';
+        
+        // Show VR UI elements
+        if (vrGalleryToggle) vrGalleryToggle.setAttribute('visible', 'true');
+    } else {
+        // Show 2D UI elements
+        if (galleryControls) galleryControls.style.display = 'block';
+        if (keyboardHint) keyboardHint.style.display = 'block';
+        if (galleryOverlay) galleryOverlay.style.display = 'block';
+        
+        // Hide VR UI elements
+        if (vrGalleryToggle) vrGalleryToggle.setAttribute('visible', 'false');
+        if (vrGalleryVisible) hideVRGallery();
     }
 }
 
@@ -575,6 +600,7 @@ async function loadVRGalleryImages(galleryName) {
         
         if (data.images.length > 0) {
             // Load first image
+            currentImageIndex = 0;
             let firstImageObj = data.images[0];
             let firstFilename = firstImageObj;
             if (typeof firstImageObj === 'object' && firstImageObj !== null && 'filename' in firstImageObj) {
@@ -595,6 +621,49 @@ async function loadVRGalleryImages(galleryName) {
     } catch (error) {
         console.error(`Error loading VR gallery ${galleryName}:`, error);
     }
+}
+
+// Navigate to next image
+function nextImage() {
+    if (currentImages.length === 0) return;
+    
+    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+    loadCurrentImage();
+}
+
+// Navigate to previous image  
+function previousImage() {
+    if (currentImages.length === 0) return;
+    
+    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+    loadCurrentImage();
+}
+
+// Load current image based on index
+function loadCurrentImage() {
+    if (currentImages.length === 0 || currentImageIndex < 0 || currentImageIndex >= currentImages.length) return;
+    
+    const imageObj = currentImages[currentImageIndex];
+    let filename = imageObj;
+    if (typeof imageObj === 'object' && imageObj !== null && 'filename' in imageObj) {
+        filename = imageObj.filename;
+    }
+    
+    const imagePath = `images/${currentSubdirectory}/${filename}`;
+    initAFrameViewer(imagePath);
+    
+    // Update active thumbnail in 2D gallery
+    updateActiveThumbnail();
+    
+    console.log(`Loaded image ${currentImageIndex + 1} of ${currentImages.length}: ${filename}`);
+}
+
+// Update active thumbnail in 2D gallery
+function updateActiveThumbnail() {
+    const thumbnails = document.querySelectorAll('.thumbnail');
+    thumbnails.forEach((thumb, index) => {
+        thumb.classList.toggle('active', index === currentImageIndex);
+    });
 }
 
 // Camera movement variables
@@ -620,21 +689,73 @@ function rotateCameraVertical(direction) {
     }
 }
 
-// Keyboard shortcuts for camera movement
+// Enhanced keyboard shortcuts
 document.addEventListener('keydown', (e) => {
+    // Don't interfere with inputs
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     
-    switch(e.key) {
-        case 'ArrowLeft':
+    switch(e.key.toLowerCase()) {
+        // Camera rotation (WASD)
+        case 'a':
             rotateCameraHorizontal(-1);
             break;
-        case 'ArrowRight':
+        case 'd':
             rotateCameraHorizontal(1);
             break;
-        case 'ArrowUp':
+        case 'w':
             rotateCameraVertical(-1);
             break;
-        case 'ArrowDown':
+        case 's':
+            rotateCameraVertical(1);
+            break;
+            
+        // Image navigation
+        case 'e':
+            nextImage();
+            break;
+        case 'g':
+            // In VR mode, G navigates to previous image
+            // In 2D mode, G toggles gallery (existing behavior)
+            if (isVRMode) {
+                previousImage();
+            } else {
+                toggleGallery();
+            }
+            break;
+            
+        // Gallery controls (2D mode only)
+        case 'v':
+            if (vrGalleryInitialized && isVRMode) {
+                toggleVRGallery();
+            }
+            break;
+        case 'escape':
+            if (vrGalleryVisible) {
+                hideVRGallery();
+            } else if (currentView === 'images') {
+                loadgalleries();
+            } else if (galleryVisible && !isVRMode) {
+                toggleGallery();
+            }
+            break;
+        case 'tab':
+            if (!isVRMode) {
+                e.preventDefault();
+                toggleGallery();
+            }
+            break;
+            
+        // Arrow keys for camera rotation (alternative to WASD)
+        case 'arrowleft':
+            rotateCameraHorizontal(-1);
+            break;
+        case 'arrowright':
+            rotateCameraHorizontal(1);
+            break;
+        case 'arrowup':
+            rotateCameraVertical(-1);
+            break;
+        case 'arrowdown':
             rotateCameraVertical(1);
             break;
     }
@@ -648,7 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scene = document.getElementById('viewer');
     if (scene) {
         scene.addEventListener('loaded', () => {
-            setTimeout(initVRGallery, 1000); // Small delay to ensure all elements are ready
+            setTimeout(() => {
+                initVRGallery();
+                updateUIForMode(); // Ensure proper initial state
+            }, 1000); // Small delay to ensure all elements are ready
         });
     }
 });
