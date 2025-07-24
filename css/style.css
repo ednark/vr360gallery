@@ -374,3 +374,26 @@ body {
         border-width: 2px;
     }
 }
+
+/* VR Gallery Styles */
+/* These help with A-Frame rendering and cursor interactions */
+[data-raycastable] {
+    cursor: pointer;
+}
+
+/* Ensure A-Frame elements are interactive */
+a-box[data-raycastable],
+a-plane[data-raycastable],
+a-entity[data-raycastable] {
+    pointer-events: auto;
+}
+
+/* VR Gallery animations - implemented via A-Frame animation component */
+.vr-gallery-item-hover {
+    animation: vr-hover 0.2s ease-in-out;
+}
+
+@keyframes vr-hover {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}

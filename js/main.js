@@ -63,8 +63,17 @@ function setupEventListeners() {
             case 'G':
                 toggleGallery();
                 break;
+            case 'v':
+            case 'V':
+                // Toggle VR gallery
+                if (vrGalleryInitialized) {
+                    toggleVRGallery();
+                }
+                break;
             case 'Escape':
-                if (currentView === 'images') {
+                if (vrGalleryVisible) {
+                    hideVRGallery();
+                } else if (currentView === 'images') {
                     loadgalleries();
                 } else if (galleryVisible) {
                     toggleGallery();
@@ -402,6 +411,192 @@ function toggleGallery() {
     }
 }
 
+// VR Gallery state
+let vrGalleryVisible = false;
+let vrGalleryInitialized = false;
+
+// Initialize VR Gallery
+function initVRGallery() {
+    if (vrGalleryInitialized) return;
+    
+    // Set up VR gallery toggle button
+    const vrToggleButton = document.getElementById('vr-gallery-toggle');
+    const vrGalleryPanel = document.getElementById('vr-gallery-panel');
+    const vrCloseButton = document.getElementById('vr-gallery-close');
+    
+    if (vrToggleButton && vrGalleryPanel && vrCloseButton) {
+        // Toggle button click handler
+        vrToggleButton.addEventListener('click', toggleVRGallery);
+        
+        // Close button click handler
+        vrCloseButton.addEventListener('click', hideVRGallery);
+        
+        // Load galleries into VR panel
+        loadVRGalleries();
+        
+        vrGalleryInitialized = true;
+        console.log('VR Gallery initialized');
+    }
+}
+
+// Toggle VR Gallery visibility
+function toggleVRGallery() {
+    if (vrGalleryVisible) {
+        hideVRGallery();
+    } else {
+        showVRGallery();
+    }
+}
+
+// Show VR Gallery
+function showVRGallery() {
+    const vrGalleryPanel = document.getElementById('vr-gallery-panel');
+    const vrToggleText = document.getElementById('vr-toggle-text');
+    
+    if (vrGalleryPanel && vrToggleText) {
+        vrGalleryPanel.setAttribute('visible', 'true');
+        vrToggleText.setAttribute('value', '📷 Hide');
+        vrGalleryVisible = true;
+        
+        // Position panel in front of camera
+        const camera = document.getElementById('main-camera');
+        if (camera) {
+            const cameraRotation = camera.getAttribute('rotation');
+            const cameraPosition = camera.getAttribute('position') || {x: 0, y: 0, z: 0};
+            
+            // Calculate position in front of camera
+            const distance = 3;
+            const radY = (cameraRotation.y || 0) * Math.PI / 180;
+            const newX = cameraPosition.x + Math.sin(radY) * distance;
+            const newZ = cameraPosition.z - Math.cos(radY) * distance;
+            
+            vrGalleryPanel.setAttribute('position', `${newX} ${cameraPosition.y} ${newZ}`);
+            vrGalleryPanel.setAttribute('rotation', `0 ${cameraRotation.y || 0} 0`);
+        }
+        
+        console.log('VR Gallery shown');
+    }
+}
+
+// Hide VR Gallery
+function hideVRGallery() {
+    const vrGalleryPanel = document.getElementById('vr-gallery-panel');
+    const vrToggleText = document.getElementById('vr-toggle-text');
+    
+    if (vrGalleryPanel && vrToggleText) {
+        vrGalleryPanel.setAttribute('visible', 'false');
+        vrToggleText.setAttribute('value', '📷 Gallery');
+        vrGalleryVisible = false;
+        console.log('VR Gallery hidden');
+    }
+}
+
+// Load galleries into VR panel
+async function loadVRGalleries() {
+    try {
+        const response = await fetch('images/index.json');
+        const data = await response.json();
+        const vrGalleryItems = document.getElementById('vr-gallery-items');
+        
+        if (!vrGalleryItems) return;
+        
+        // Clear existing items
+        vrGalleryItems.innerHTML = '';
+        
+        // Create gallery items in a grid layout
+        const itemsPerRow = 3;
+        const itemWidth = 1.5;
+        const itemHeight = 0.8;
+        const spacing = 0.3;
+        
+        data.galleries.forEach((galleryName, index) => {
+            const row = Math.floor(index / itemsPerRow);
+            const col = index % itemsPerRow;
+            
+            const x = (col - (itemsPerRow - 1) / 2) * (itemWidth + spacing);
+            const y = 0.5 - row * (itemHeight + spacing);
+            
+            // Create gallery item container
+            const galleryItem = document.createElement('a-entity');
+            galleryItem.setAttribute('position', `${x} ${y} 0`);
+            galleryItem.setAttribute('data-raycastable', '');
+            galleryItem.setAttribute('data-gallery', galleryName);
+            
+            // Create background box
+            const itemBox = document.createElement('a-box');
+            itemBox.setAttribute('width', itemWidth);
+            itemBox.setAttribute('height', itemHeight);
+            itemBox.setAttribute('depth', '0.1');
+            itemBox.setAttribute('color', '#444444');
+            itemBox.setAttribute('opacity', '0.8');
+            
+            // Create text label
+            const itemText = document.createElement('a-text');
+            itemText.setAttribute('value', galleryName);
+            itemText.setAttribute('position', '0 0 0.06');
+            itemText.setAttribute('align', 'center');
+            itemText.setAttribute('color', 'white');
+            itemText.setAttribute('font', 'dejavu');
+            itemText.setAttribute('width', '4');
+            
+            // Add hover effects
+            galleryItem.addEventListener('mouseenter', function() {
+                itemBox.setAttribute('color', '#666666');
+                itemBox.setAttribute('scale', '1.05 1.05 1.05');
+            });
+            
+            galleryItem.addEventListener('mouseleave', function() {
+                itemBox.setAttribute('color', '#444444');
+                itemBox.setAttribute('scale', '1 1 1');
+            });
+            
+            // Add click handler
+            galleryItem.addEventListener('click', function() {
+                loadVRGalleryImages(galleryName);
+                hideVRGallery();
+            });
+            
+            galleryItem.appendChild(itemBox);
+            galleryItem.appendChild(itemText);
+            vrGalleryItems.appendChild(galleryItem);
+        });
+        
+        console.log(`Loaded ${data.galleries.length} galleries into VR panel`);
+    } catch (error) {
+        console.error('Error loading VR galleries:', error);
+    }
+}
+
+// Load images from a gallery in VR mode
+async function loadVRGalleryImages(galleryName) {
+    try {
+        const response = await fetch(`images/${galleryName}/index.json`);
+        const data = await response.json();
+        
+        if (data.images.length > 0) {
+            // Load first image
+            let firstImageObj = data.images[0];
+            let firstFilename = firstImageObj;
+            if (typeof firstImageObj === 'object' && firstImageObj !== null && 'filename' in firstImageObj) {
+                firstFilename = firstImageObj.filename;
+            }
+            const firstImagePath = `images/${galleryName}/${firstFilename}`;
+            initAFrameViewer(firstImagePath);
+            
+            // Update 2D gallery if visible
+            currentSubdirectory = galleryName;
+            currentImages = data.images;
+            if (galleryVisible && currentView === 'galleries') {
+                loadImagesFromSubdirectory(galleryName);
+            }
+            
+            console.log(`Loaded VR gallery: ${galleryName} with ${data.images.length} images`);
+        }
+    } catch (error) {
+        console.error(`Error loading VR gallery ${galleryName}:`, error);
+    }
+}
+
 // Camera movement variables
 let cameraRotation = { x: 0, y: 0 };
 const CAMERA_SPEED = 2; // degrees per keypress
@@ -446,4 +641,14 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initGallery);
+document.addEventListener('DOMContentLoaded', () => {
+    initGallery();
+    
+    // Initialize VR gallery after A-Frame loads
+    const scene = document.getElementById('viewer');
+    if (scene) {
+        scene.addEventListener('loaded', () => {
+            setTimeout(initVRGallery, 1000); // Small delay to ensure all elements are ready
+        });
+    }
+});

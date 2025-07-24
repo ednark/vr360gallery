@@ -37,6 +37,72 @@
                   raycaster="objects: [data-raycastable]"
                   line="color: blue; opacity: 0.75">
         </a-entity>
+
+        <!-- 3D Gallery Toggle Button -->
+        <a-entity id="vr-gallery-toggle" 
+                  position="1.5 0.5 -2"
+                  rotation="0 -20 0"
+                  data-raycastable="">
+            <a-box id="vr-toggle-button"
+                   width="0.8" height="0.3" depth="0.1"
+                   color="#333333"
+                   opacity="0.9"
+                   data-raycastable="">
+            </a-box>
+            <a-text id="vr-toggle-text"
+                    value="📷 Gallery"
+                    position="0 0 0.06"
+                    align="center"
+                    color="white"
+                    font="dejavu"
+                    width="6">
+            </a-text>
+        </a-entity>
+
+        <!-- 3D Gallery Panel -->
+        <a-entity id="vr-gallery-panel" 
+                  position="0 0 -3"
+                  visible="false">
+            <!-- Background panel -->
+            <a-plane id="vr-gallery-background"
+                     width="6" height="3"
+                     color="#000000"
+                     opacity="0.85"
+                     data-raycastable="">
+            </a-plane>
+            
+            <!-- Gallery title -->
+            <a-text id="vr-gallery-title"
+                    value="Gallery Selection"
+                    position="0 1.2 0.01"
+                    align="center"
+                    color="white"
+                    font="dejavu"
+                    width="8">
+            </a-text>
+            
+            <!-- Close button -->
+            <a-entity id="vr-gallery-close"
+                      position="2.7 1.2 0.01"
+                      data-raycastable="">
+                <a-box width="0.3" height="0.3" depth="0.05"
+                       color="#ff4444"
+                       opacity="0.8">
+                </a-box>
+                <a-text value="✕"
+                        position="0 0 0.03"
+                        align="center"
+                        color="white"
+                        font="dejavu"
+                        width="8">
+                </a-text>
+            </a-entity>
+            
+            <!-- Gallery items container -->
+            <a-entity id="vr-gallery-items" position="0 0 0.01">
+                <!-- Gallery items will be dynamically added here -->
+            </a-entity>
+        </a-entity>
     </a-scene>
     
     <!-- Gallery Controls -->
@@ -49,7 +115,7 @@
     
     <!-- Keyboard Hint -->
     <div id="keyboard-hint" class="keyboard-hint">
-        Press 'G' or 'Tab' to toggle gallery • 'Esc' to go back
+        Press 'G' or 'Tab' to toggle gallery • 'V' for 3D gallery • 'Esc' to go back
     </div>
     
     <!-- Gallery Overlay -->
