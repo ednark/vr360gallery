@@ -465,7 +465,7 @@ function showVRGallery() {
             const cameraPosition = camera.getAttribute('position') || {x: 0, y: 0, z: 0};
             
             // Calculate position in front of camera
-            const distance = 3;
+            const distance = 6;
             const radY = (cameraRotation.y || 0) * Math.PI / 180;
             const newX = cameraPosition.x + Math.sin(radY) * distance;
             const newZ = cameraPosition.z - Math.cos(radY) * distance;
