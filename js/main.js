@@ -1,15 +1,19 @@
 // main.js - Simplified 2D Gallery with Virtual Scrolling
 const viewerElement = document.getElementById('viewer');
 const galleryOverlay = document.getElementById('gallery-overlay');
+const galleryContent = document.getElementById('gallery-content');
 const panoramaSky = document.getElementById('panorama-sky');
 const galleryToggle = document.getElementById('gallery-toggle');
+const toggleText = document.querySelector('.toggle-text');
+const toggleIcon = document.querySelector('.toggle-icon');
+const keyboardHint = document.getElementById('keyboard-hint');
 
 // Gallery state
-let currentView = 'subdirectories'; // 'subdirectories' or 'images'
+let currentView = 'galleries'; // 'galleries' or 'images'
 let currentSubdirectory = null;
 let galleryVisible = true;
 let currentImages = [];
-let currentSubdirectories = [];
+let currentgalleries = [];
 
 // Virtual scrolling state
 let visibleStartIndex = 0;
@@ -22,23 +26,53 @@ let maxVisibleRows = 3;
 // Initialize gallery
 function initGallery() {
     setupEventListeners();
-    loadSubdirectories();
+    loadgalleries();
+    
+    // Show keyboard hint for a few seconds, then fade out
+    setTimeout(() => {
+        if (keyboardHint) {
+            keyboardHint.classList.add('hidden');
+        }
+    }, 5000);
 }
 
 // Event listeners
 function setupEventListeners() {
     galleryToggle.addEventListener('click', toggleGallery);
     
+    // Show hint on hover over gallery toggle
+    galleryToggle.addEventListener('mouseenter', () => {
+        if (keyboardHint) {
+            keyboardHint.classList.remove('hidden');
+        }
+    });
+    
+    // Hide hint when mouse leaves gallery toggle after delay
+    galleryToggle.addEventListener('mouseleave', () => {
+        setTimeout(() => {
+            if (keyboardHint) {
+                keyboardHint.classList.add('hidden');
+            }
+        }, 2000);
+    });
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         switch(e.key) {
             case 'g':
+            case 'G':
                 toggleGallery();
                 break;
             case 'Escape':
                 if (currentView === 'images') {
-                    loadSubdirectories();
+                    loadgalleries();
+                } else if (galleryVisible) {
+                    toggleGallery();
                 }
+                break;
+            case 'Tab':
+                e.preventDefault();
+                toggleGallery();
                 break;
         }
     });
@@ -93,11 +127,26 @@ function initAFrameViewer(imagePath) {
 
 // Check if image is 360-degree
 function is360Image(imageName) {
-    const name = imageName.toLowerCase();
-    return name.includes('360') || 
-           name.includes('panorama') || 
-           name.includes('equirectangular') ||
-           name.includes('spherical');
+    // If imageName is an object with is_360 property, use it
+    if (typeof imageName === 'object' && imageName !== null) {
+        if ('is_360' in imageName) {
+            return imageName.is_360;
+        }
+        if ('filename' in imageName && typeof imageName.filename === 'string') {
+            imageName = imageName.filename;
+        } else {
+            return false;
+        }
+    }
+    // Fallback for legacy string usage
+    if (typeof imageName === 'string') {
+        const name = imageName.toLowerCase();
+        return name.includes('360') || 
+               name.includes('panorama') || 
+               name.includes('equirectangular') ||
+               name.includes('spherical');
+    }
+    return false;
 }
 
 // Create thumbnail element
@@ -107,36 +156,43 @@ function createThumbnail(imageName, imagePath, subdirectoryName) {
     container.style.width = thumbnailSize + 'px';
     container.style.height = thumbnailSize + 'px';
     
+    let filename = imageName;
+    if (typeof imageName === 'object' && imageName !== null) {
+        if ('filename' in imageName) {
+            filename = imageName.filename;
+        }
+    }
     const img = document.createElement('img');
-    img.src = `images/${subdirectoryName}/thumb_${imageName}`;
+    img.src = `images/${subdirectoryName}/thumb_${filename}`;
     img.className = 'thumbnail';
     img.loading = 'lazy'; // Enable lazy loading
-    
+    img.setAttribute('data-raycastable', '');
+
     if (is360Image(imageName)) {
         img.classList.add('is-360');
     }
-    
+
     img.dataset.imagePath = imagePath;
-    img.dataset.imageName = imageName;
-    
+    img.dataset.imageName = filename;
+
     // Click handler
     img.addEventListener('click', () => {
         initAFrameViewer(imagePath);
-        
+
         // Remove active class from all thumbnails
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active');
         });
-        
+
         // Add active class to clicked thumbnail
         img.classList.add('active');
     });
-    
+
     // Add hover title
     img.addEventListener('mouseenter', () => {
-        img.title = is360Image(imageName) ? `360° Image: ${imageName}` : `Image: ${imageName}`;
+        img.title = is360Image(imageName) ? `360° Image: ${filename}` : `Image: ${filename}`;
     });
-    
+
     container.appendChild(img);
     return container;
 }
@@ -152,11 +208,12 @@ function createSubdirectoryItem(subdirName) {
     div.className = 'subdirectory-item';
     div.textContent = subdirName;
     div.dataset.subdirectory = subdirName;
-    
+    div.setAttribute('data-raycastable', '');
+
     div.addEventListener('click', () => {
         loadImagesFromSubdirectory(subdirName);
     });
-    
+
     container.appendChild(div);
     return container;
 }
@@ -172,11 +229,23 @@ function createBackButton() {
     button.className = 'back-button';
     button.innerHTML = '←';
     button.title = 'Back to directories';
-    
+    button.setAttribute('data-raycastable', '');
+
     button.addEventListener('click', () => {
-        loadSubdirectories();
+        // Only show gallery selection, do not auto-load first gallery or image
+        galleryContent.innerHTML = '';
+        currentView = 'galleries';
+        calculateLayout();
+        const container = document.createElement('div');
+        container.className = 'galleries-grid';
+        currentgalleries.forEach(subdirName => {
+            const subdirItem = createSubdirectoryItem(subdirName);
+            container.appendChild(subdirItem);
+        });
+        galleryContent.appendChild(container);
+        console.log('Returned to gallery selection');
     });
-    
+
     container.appendChild(button);
     return container;
 }
@@ -201,9 +270,13 @@ function renderVisibleThumbnails() {
     
     for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
         if (i < currentImages.length) {
-            const imageName = currentImages[i];
-            const imagePath = `images/${currentSubdirectory}/${imageName}`;
-            const thumbnail = createThumbnail(imageName, imagePath, currentSubdirectory);
+            const imageObj = currentImages[i];
+            let filename = imageObj;
+            if (typeof imageObj === 'object' && imageObj !== null && 'filename' in imageObj) {
+                filename = imageObj.filename;
+            }
+            const imagePath = `images/${currentSubdirectory}/${filename}`;
+            const thumbnail = createThumbnail(imageObj, imagePath, currentSubdirectory);
             visibleContainer.appendChild(thumbnail);
         }
     }
@@ -213,7 +286,7 @@ function renderVisibleThumbnails() {
 
 // Render all images with virtual scrolling setup
 function renderImages() {
-    galleryOverlay.innerHTML = '';
+    galleryContent.innerHTML = '';
     currentView = 'images';
     
     // Calculate layout
@@ -228,8 +301,8 @@ function renderImages() {
     container.id = 'thumbnails-container';
     container.className = 'virtual-scroll-container';
     
-    galleryOverlay.appendChild(createBackButton());
-    galleryOverlay.appendChild(container);
+    galleryContent.appendChild(createBackButton());
+    galleryContent.appendChild(container);
     
     // Initial render
     handleGalleryScroll();
@@ -243,14 +316,19 @@ async function loadImagesFromSubdirectory(subdirectoryName) {
         const response = await fetch(`images/${subdirectoryName}/index.json`);
         const data = await response.json();
         currentImages = data.images;
-        
+
         renderImages();
-        
+
         // Load the first image by default
         if (data.images.length > 0) {
-            const firstImagePath = `images/${subdirectoryName}/${data.images[0]}`;
+            let firstImageObj = data.images[0];
+            let firstFilename = firstImageObj;
+            if (typeof firstImageObj === 'object' && firstImageObj !== null && 'filename' in firstImageObj) {
+                firstFilename = firstImageObj.filename;
+            }
+            const firstImagePath = `images/${subdirectoryName}/${firstFilename}`;
             initAFrameViewer(firstImagePath);
-            
+
             // Mark first thumbnail as active
             setTimeout(() => {
                 const firstThumbnail = document.querySelector('.thumbnail');
@@ -259,45 +337,42 @@ async function loadImagesFromSubdirectory(subdirectoryName) {
                 }
             }, 100);
         }
-        
+
         console.log(`Loaded ${data.images.length} images from ${subdirectoryName}`);
     } catch (error) {
         console.error(`Error loading images from ${subdirectoryName}:`, error);
     }
 }
 
-// Load subdirectories
-async function loadSubdirectories() {
-    galleryOverlay.innerHTML = '';
-    currentView = 'subdirectories';
+// Load galleries
+async function loadgalleries() {
+    galleryContent.innerHTML = '';
+    currentView = 'galleries';
     
     try {
         const response = await fetch('images/index.json');
         const data = await response.json();
-        currentSubdirectories = data.subdirectories;
+        currentgalleries = data.galleries;
         
         // Calculate layout
         calculateLayout();
         
         // Create grid container
         const container = document.createElement('div');
-        container.className = 'subdirectories-grid';
+        container.className = 'galleries-grid';
         
-        data.subdirectories.forEach(subdirName => {
+        data.galleries.forEach(subdirName => {
             const subdirItem = createSubdirectoryItem(subdirName);
             container.appendChild(subdirItem);
         });
         
-        galleryOverlay.appendChild(container);
+        galleryContent.appendChild(container);
         
-        // Load images from the first subdirectory by default
-        if (data.subdirectories.length > 0) {
-            loadImagesFromSubdirectory(data.subdirectories[0]);
-        }
+        // Do not auto-load the first gallery when showing gallery selection
         
-        console.log(`Loaded ${data.subdirectories.length} subdirectories`);
+        console.log(`Loaded ${data.galleries.length} galleries`);
     } catch (error) {
-        console.error('Error loading subdirectories:', error);
+        console.error('Error loading galleries:', error);
     }
 }
 
@@ -307,10 +382,14 @@ function toggleGallery() {
     
     if (galleryVisible) {
         galleryOverlay.classList.remove('hidden');
-        galleryToggle.textContent = 'Hide Gallery';
+        toggleText.textContent = 'Hide Gallery';
+        toggleIcon.textContent = '🙈';
+        console.log('Gallery shown');
     } else {
         galleryOverlay.classList.add('hidden');
-        galleryToggle.textContent = 'Show Gallery';
+        toggleText.textContent = 'Show Gallery';
+        toggleIcon.textContent = '📷';
+        console.log('Gallery hidden');
     }
 }
 

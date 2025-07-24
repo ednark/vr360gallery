@@ -39,12 +39,26 @@
         </a-entity>
     </a-scene>
     
-    <!-- 2D Gallery Toggle -->
-    <button id="gallery-toggle" class="gallery-toggle">Gallery</button>
+    <!-- Gallery Controls -->
+    <div id="gallery-controls">
+        <button id="gallery-toggle" class="gallery-toggle">
+            <span class="toggle-text">Hide Gallery</span>
+            <span class="toggle-icon">📷</span>
+        </button>
+    </div>
     
-    <!-- 2D Gallery Overlay -->
-    <div id="gallery-overlay"></div>
+    <!-- Keyboard Hint -->
+    <div id="keyboard-hint" class="keyboard-hint">
+        Press 'G' or 'Tab' to toggle gallery • 'Esc' to go back
+    </div>
+    
+    <!-- Gallery Overlay -->
+    <div id="gallery-overlay">
+        <div id="gallery-content"></div>
+    </div>
     
     <script src="js/main.js"></script>
+    <script>(function () { var script = document.createElement('script'); script.src = 'https://cdn.jsdelivr.net/npm/eruda'; document.body.appendChild(script); script.onload = function () { eruda.init(); }; })();</script>
+
 </body>
 </html>

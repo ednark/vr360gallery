@@ -22,7 +22,7 @@ def is_image_360(image_path):
 
 def process_images():
     if not os.path.exists(IMAGES_DIR):
-        print(f"Images directory '{IMAGES_DIR}' not found. Please create it and place your gallery subdirectories inside.")
+        print(f"Images directory '{IMAGES_DIR}' not found. Please create it and place your gallery galleries inside.")
         return
 
     gallery_dirs = [d for d in os.listdir(IMAGES_DIR) if os.path.isdir(os.path.join(IMAGES_DIR, d))]
