@@ -104,8 +104,9 @@ function handleGalleryScroll() {
     
     const scrollTop = galleryOverlay.scrollTop;
     const rowHeight = thumbnailSize + gapSize;
+    const totalItems = currentImages.length + 1; // +1 for back button
     const newStartIndex = Math.max(0, Math.floor(scrollTop / rowHeight) * thumbnailsPerRow - thumbnailsPerRow);
-    const newEndIndex = Math.min(currentImages.length, newStartIndex + (maxVisibleRows + 2) * thumbnailsPerRow);
+    const newEndIndex = Math.min(totalItems, newStartIndex + (maxVisibleRows + 2) * thumbnailsPerRow);
     
     if (newStartIndex !== visibleStartIndex || newEndIndex !== visibleEndIndex) {
         visibleStartIndex = newStartIndex;
@@ -258,8 +259,9 @@ function renderVisibleThumbnails() {
     // Clear existing thumbnails
     container.innerHTML = '';
     
-    // Create spacer for virtual scrolling
-    const totalRows = Math.ceil(currentImages.length / thumbnailsPerRow);
+    // Calculate total items including back button
+    const totalItems = currentImages.length + 1; // +1 for back button
+    const totalRows = Math.ceil(totalItems / thumbnailsPerRow);
     const totalHeight = totalRows * (thumbnailSize + gapSize);
     container.style.height = totalHeight + 'px';
     
@@ -268,9 +270,17 @@ function renderVisibleThumbnails() {
     visibleContainer.className = 'visible-thumbnails';
     visibleContainer.style.transform = `translateY(${Math.floor(visibleStartIndex / thumbnailsPerRow) * (thumbnailSize + gapSize)}px)`;
     
+    // Add back button as first item if visible
+    if (visibleStartIndex === 0) {
+        const backButton = createBackButton();
+        visibleContainer.appendChild(backButton);
+    }
+    
+    // Add thumbnails, adjusting for back button offset
     for (let i = visibleStartIndex; i < visibleEndIndex; i++) {
-        if (i < currentImages.length) {
-            const imageObj = currentImages[i];
+        const imageIndex = i - 1; // Offset by 1 for back button
+        if (imageIndex >= 0 && imageIndex < currentImages.length) {
+            const imageObj = currentImages[imageIndex];
             let filename = imageObj;
             if (typeof imageObj === 'object' && imageObj !== null && 'filename' in imageObj) {
                 filename = imageObj.filename;
@@ -301,7 +311,6 @@ function renderImages() {
     container.id = 'thumbnails-container';
     container.className = 'virtual-scroll-container';
     
-    galleryContent.appendChild(createBackButton());
     galleryContent.appendChild(container);
     
     // Initial render
